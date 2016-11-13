@@ -1,0 +1,397 @@
+
+# coding: utf-8
+
+# # Exploring the Titanic Data Set
+# 
+# ## Introduction
+# 
+# The goal of this Udacity project is to explore the Titanic data set and understand what factors made people more likely to survive.
+# 
+# The data set is from the Kaggle web site.  The data set contains demographics and passenger information from 891 of the 2224 passengers and crew on board the Titanic.
+# 
+# ## Questions
+# 
+# What is the percentage of passengers that survived the Titanic sinking? 
+# What is the percentage of passengers that survived broken out by Sex, Passenger Class, and if the passenger traveled with family?
+# 
+# ## Review of the Data and Data Wrangling
+# I stared out my investigation by importing the python libraries, the Titanic data set and reviewing the variable descriptions provided by the Kaggle web site.
+# 
+# I ran .head, .describe and .info functions to get a look at the data.
+# 
+# 
+
+# In[169]:
+
+get_ipython().magic(u'matplotlib inline')
+import unicodecsv
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import pylab as P
+        
+filename = '/Users/douglasjoseph-iMac/Documents/UdacityNDIP/Titanic Data Set/titanic_data.csv'
+titanic_df = pd.read_csv(filename)
+titanic_df.head(3)
+
+
+# VARIABLE DESCRIPTIONS:
+# 
+# survival:        Survival (0 = No; 1 = Yes)
+#                 
+# pclass:          Passenger Class (1 = 1st; 2 = 2nd; 3 = 3rd)
+#                 
+# name:            Name
+# 
+# sex:             Sex
+# 
+# age:             Age
+# 
+# sibsp:           Number of Siblings/Spouses Aboard
+# 
+# parch:           Number of Parents/Children Aboard
+# 
+# ticket:          Ticket Number
+# 
+# fare:            Passenger Fare
+# 
+# cabin:           Cabin
+# 
+# embarked:        Port of Embarkation (C = Cherbourg; Q = Queenstown; S = Southampton)
+
+# In[170]:
+
+print titanic_df.describe()
+
+
+# When I ran describe function, I noticed that the Age was not populated on all rows.  The Age attribute was in 714 out of 891 passenger rows.
+
+# In[171]:
+
+print titanic_df.info()
+
+
+# In[172]:
+
+titanic_df.drop(['Ticket','Fare'], axis=1, inplace=True)
+
+
+# My investigation of the titanic dataframe will not involve Ticket or Fare data points.  I dropped them from the dataframe.  
+
+# In[173]:
+
+titanic_df.Age.hist(bins=80,figsize = (7,7))
+plt.xlabel("Age")
+plt.ylabel("Number of Person")
+plt.title("Histogram of Passenger Age");
+
+
+# 
+# Let’s take a look a histogram of the passengers by Age.
+# The describe function shows the passenger's mean Age is 29.7.
+# Below is a histogram of the passenger's ages.
+# I will keep the rows that are missing the age data points, but I will note that the missing age value will impact that analysis. 
+# 
+
+# In[174]:
+
+titanic_df['Family'] = 4
+titanic_df['Family'] =  titanic_df["Parch"] + titanic_df["SibSp"]
+titanic_df['Family'].loc[titanic_df['Family'] > 0] = 1
+titanic_df['Family'].loc[titanic_df['Family'] == 0] = 0
+
+
+# Using [Kaggle](https://www.kaggle.com/c/titanic/details/getting-started-with-python-ii) as a guide, I created a new column called Family, first populating it with a 4 and then filling in the column with a 1 if there was a passenger with either a sibling or a parent, or 0 if the passenger was traveling alone.
+# 
+# The new family data point will be used to answer the question about the percentage of survivors when broken out by the passesngers who traveled with family.
+
+# In[175]:
+
+titanic_df.head(3)
+
+
+# In[176]:
+
+print titanic_df.describe()
+
+
+# ## Exploration Phase
+# ### Percentage who survived the Titanic sinking, in general, and broken out by gender
+# 
+# Here is where I started to look at the data by different passenger attributes.
+# The crosstab below shows the absolute values of males and females who survived (1) and those who did not (0).
+
+# In[177]:
+
+pd.crosstab(titanic_df["Sex"],titanic_df["Survived"],margins=True)
+
+
+# The next crosstab shows the percentage values of males and females who survived (1) and those who did not (0).
+# 
+# I found the code to present crosstab data in percentages from [www.analyticsvidhya.com](
+# https://www.analyticsvidhya.com/blog/2016/01/12-pandas-techniques-python-data-manipulation/)
+# 
+# The same website also provided the starter code for Pie charts and I modified it as needed.
+
+# In[178]:
+
+def percConvert(ser):
+  return ser/float(ser[-1])
+  
+pd.crosstab(titanic_df["Sex"],titanic_df["Survived"],margins=True).apply(percConvert, axis=1)
+
+
+# Pie charts are used to visually show the survival rates of the overall passengers and also survival rates broken out by gender.
+# 
+# Again, I used starter code from www.analyticsvidhya.com to generate the pie charts and I modified it as needed.
+
+# In[179]:
+
+var=titanic_df.groupby(['Survived']).count().stack()
+temp=var.unstack()
+type(temp)
+x_list = temp['PassengerId']
+label_list = temp.index
+plt.figure(figsize=(6,6))
+colors = ['lightyellow', 'lightblue']
+#The pie chart is oval by default. To make it a circle use plt.axis("equal")
+#To show the percentage of each pie slice, pass an output format to the autopctparameter 
+plt.pie(x_list,labels=label_list,colors=colors,autopct="%1.1f%%", startangle=90) 
+plt.axis('equal')
+plt.title("Overall Survival Rate for Titanic Passengers, 1 = Survived, 0 = Died")
+plt.show()
+
+
+# #### Overall, 38.38% of the passengers survived. Broken out by gender, 74.20% of female passengers survived and 18.89% of male passengers survived.
+
+# In[180]:
+
+#survivednot_df = titanic_df[titanic_df.Survived == 0]
+var=titanic_df[titanic_df.Sex == 'female'].groupby(['Survived']).count().stack()
+temp=var.unstack()
+type(temp)
+x_list = temp['PassengerId']
+label_list = temp.index
+plt.figure(figsize=(6,6))
+colors = ['lightyellow', 'lightblue']
+#The pie chart is oval by default. To make it a circle use plt.axis("equal")
+#To show the percentage of each pie slice, pass an output format to the autopctparameter 
+plt.pie(x_list,labels=label_list,colors=colors,autopct="%1.1f%%", startangle=90)
+plt.axis('equal')
+plt.title("Survival Rate for Female Passengers, 1 = Survived, 0 = Died")
+plt.show()
+
+
+# #### 74.20% of female passengers survived.
+
+# In[181]:
+
+#survivednot_df = titanic_df[titanic_df.Survived == 0]
+var=titanic_df[titanic_df.Sex == 'male'].groupby(['Survived']).count().stack()
+temp=var.unstack()
+type(temp)
+x_list = temp['PassengerId']
+label_list = temp.index
+plt.figure(figsize=(6,6))
+colors = ['lightyellow', 'lightblue']
+#The pie chart is oval by default. To make it a circle use plt.axis("equal")
+#To show the percentage of each pie slice, pass an output format to the autopctparameter 
+plt.pie(x_list,labels=label_list,colors=colors,autopct="%1.1f%%", startangle=90)
+plt.axis('equal')
+plt.title("Survival Rate for male Passengers, 1 = Survived, 0 = Died")
+plt.show()
+
+
+# #### 18.89% of male passengers survived.
+
+# ---
+
+# ### Percentage who survived the Titanic sinking, broken out by passenger class
+
+# In[182]:
+
+pd.crosstab(titanic_df["Pclass"],titanic_df["Survived"],margins=True)
+
+
+# In[183]:
+
+def percConvert(ser):
+  return ser/float(ser[-1])
+  
+pd.crosstab(titanic_df["Pclass"],titanic_df["Survived"],margins=True).apply(percConvert, axis=1)
+
+
+# #### Survival rates broken out by passenger class, first class (Pclass 1) 62.93%, second class (Pclass 2) 47.28%, and thrid class (Pclass 3) 24.24%.  Recall the overall survival rate was 38.38%.
+# 
+
+# In[184]:
+
+sns.plt.title('Distribution by age of male and female passengers broken out by passenger class')
+sns.set(style="whitegrid")
+# Draw a nested violinplot and split the violins for easier comparison
+sns.violinplot(x="Pclass", y="Age", hue="Sex", data=titanic_df, split=True,
+               scale="count", inner="quart", palette={"male": "b", "female": "y"})
+sns.plt.figure(figsize=(1, 1))
+sns.despine(left=True)
+
+
+# The above Violin plot shows passengers broken out by passenger class.
+# 
+# Compared to the pie bar charts, the violin plot is able to display multiple plots in the same chart.  In this case, I used the violin plot to show distributions broken out by passenger class.  Also, the violin plot is able to show Age data as a distribution accross the different passenger classes.  
+# 
+# Just a note, because I am using Age on the Y axis, the rows missing the age value are not used in the plot.
+# 
+# In the violin plots above, you can notice the passenger's mean age declines from 1rst class to 3rd class.
+# 
+# The starter code for the violin plots came from [Grouped violinplots with split violins](
+# http://seaborn.pydata.org/examples/grouped_violinplots.html)
+
+# In[185]:
+
+sns.plt.title('Distribution by age of male and female surviving passengers broken out by passenger class')
+sns.set(style="whitegrid")
+
+#sns.set(style="whitegrid", palette="paired", color_codes=True)
+survived_df = titanic_df[titanic_df.Survived == 1]
+
+# Draw a nested violinplot and split the violins for easier comparison
+sns.violinplot(x="Pclass", y="Age", hue="Sex", data=survived_df, split=True,
+               scale="count", inner="quart", palette={"male": "b", "female": "y"})
+sns.despine(left=True)
+
+
+# For the above Violin plot, I created a new dataframe with only data about those that survived the sinking of the Titanic.  Each Violin plot has a left and right side.  In the chart above, the left side(s) represent female survivors.  Again note, that the Survivor's mean age decreaes from 1rst to 3rd class.  
+
+# In[186]:
+
+sns.plt.title('Distribution by age of male and female non-survivor passengers broken out by passenger class')
+sns.set(style="whitegrid")
+survivednot_df = titanic_df[titanic_df.Survived == 0]
+
+# Draw a nested violinplot and split the violins for easier comparison
+sns.violinplot(x="Pclass", y="Age", hue="Sex", data=survivednot_df, split=True,
+               scale="count", inner="quart", palette={"male": "b", "female": "y"})
+sns.despine(left=True)
+
+
+# The dataframe used to create the violin plots above only contain data about those that did not survive the sinkiing of the Titanic.
+# Notice that the male passengers died in greater numbers than female passengers.
+
+# ---
+
+# ### Percentage who survived the Titanic sinking, broken out by passengers that traveled with family
+
+# In[187]:
+
+#pd.crosstab(titanic_df["Family"],titanic_df["Survived"],margins=True)
+pd.crosstab(titanic_df["Family"],titanic_df["Survived"],margins=True)
+
+
+# In[188]:
+
+def percConvert(ser):
+  return ser/float(ser[-1])
+  
+pd.crosstab(titanic_df["Family"],titanic_df["Survived"],margins=True).apply(percConvert, axis=1)
+
+
+# In[189]:
+
+pd.crosstab(titanic_df["Family"],titanic_df["Survived"],margins=True)
+
+
+# In[190]:
+
+#survivednot_df = titanic_df[titanic_df.Survived == 0]
+var=titanic_df.groupby(['Family']).count().stack()
+temp=var.unstack()
+type(temp)
+x_list = temp['PassengerId']
+label_list = temp.index
+plt.figure(figsize=(6,6))
+colors = ['lightyellow', 'lightblue']
+#The pie chart is oval by default. To make it a circle use plt.axis("equal")
+#To show the percentage of each pie slice, pass an output format to the autopctparameter 
+plt.pie(x_list,labels=label_list,colors=colors,autopct="%1.1f%%", startangle=90)
+plt.axis('equal')
+plt.title("Passengers traveling with family, 1 = Traveled with Family, 0 = Did not travel with Family")
+plt.show()
+
+
+# #### 39.7% of passengers traveled with family.  Of those that did travel with family, 50.6% Survived and 49.4% did not.
+
+# In[191]:
+
+#survivednot_df = titanic_df[titanic_df.Survived == 0]
+var=titanic_df[titanic_df.Family == 1].groupby(['Survived']).count().stack()
+temp=var.unstack()
+type(temp)
+x_list = temp['PassengerId']
+label_list = temp.index
+plt.figure(figsize=(6,6))
+colors = ['lightyellow', 'lightblue']
+#The pie chart is oval by default. To make it a circle use plt.axis("equal")
+#To show the percentage of each pie slice, pass an output format to the autopctparameter 
+plt.pie(x_list,labels=label_list,colors=colors,autopct="%1.1f%%", startangle=90)
+plt.axis('equal')
+plt.title("Survival Rate for Passengers traveling with family, 1 = Survived, 0 = Died")
+plt.show()
+
+
+# #### Of those that did travel with family, 50.6% Survived and 49.4% did not.
+
+# --------
+
+# The next two tables are my favorites.  I created a groupby table to use its ability to use multiple groupings to show the survival rates with different passenger attributes.  
+# 
+# The table shows survival rates Sex, Passenger Class and if a passenger traveled with Family or not.  The survival rates _almost_ sort by themselves, from Females traveling in Frist class to Males traveling in Third class.
+# 
+# The two tables show who survived broken out by Sex, Passenger Class and if the person traveled with Family or not.  The first table shows absolute values.  The second table shows percentage values.
+# 
+
+# In[192]:
+
+class_sex_grouping = titanic_df[ ['Family','Sex','Pclass','Survived'] ].groupby(["Sex","Pclass","Family"]).count()
+class_sex_grouping
+
+
+# The table above shows survival in absolute numbers broken out by Sex, Passenger Class and if a passenger traveled with Family or not. 
+# 
+
+# In[193]:
+
+class_sex_grouping = titanic_df[ ['Family','Sex','Pclass','Survived'] ].groupby(["Sex","Pclass","Family"]).mean()
+class_sex_grouping
+
+
+# The table above shows survival in percentages. The survival rates almost sort by themselves, from Females traveling in Frist class to Males traveling in Third class.
+
+# ## Conclusion and Communication Phase
+# 
+# In the early morning of April 15, 1912, the ship sank after it collided with an iceberg on the night of April 14th.  The Titanic carried 2,224 passengers and crew on its madden voyage.
+# 
+# A [Wikipedia article] (https://en.wikipedia.org/wiki/Passengers_of_the_RMS_Titanic#Passenger_list) shows a breakdown of casualties according to the British Board of Trade report.  The report shows there were 2,224 passengers and crew, 710 survived and 1,514 died.  
+# 
+# However, another [Wikipedia article] (https://en.wikipedia.org/wiki/RMS_Titanic#Passengers) explains that the exact number of people aboard is not known for various reasons, for example some people bought tickets but did not board the Titanic, others might have departed the ship before it sank.
+# 
+# The Titanic data set used in this project is a subset of the population.  It contains data on 891 passengers and crew, 314 females and 577 males. The Kaggle web site provided the data set.  I was not able to find out why the data set contains 891 rows of passenger information and not the full population of 2,224.  Because the Kaggle data set is subset and it is not known (to me at least) how the subset data was collected, the survival rates calculated with the subset data could be different from the population. 
+# 
+# This investigation focused on the Kaggle data set and not the full population and as the Wikipedia article suggests, it might be difficult to determine the exact population and number of survivors and victims.
+# 
+# The analysis does not state or imply that one change causes another based solely on a correlation.
+# 
+# My review of the Titanic data set focused on the survival rates of three passenger attributes, Sex (male or female), passenger class (1 = first, 2 = second, 3 = third), and if the passenger had family (1) or not (0).
+# 
+# Overall 38% passengers survived the sinking of the Titanic.  
+# 
+# Broken out by Sex, 74% of female passengers survived, while 18% of male passengers survived.
+# 
+# 63% of first class passengers survived, 47% of second class passengers survived, while 24% of third class passengers survived.  Females traveling in first or second class had survival rates above 90%.  37% of males traveling in first class survived.
+# 
+# 38% of passengers who traveled on the Titanic traveled with family.  Of those that traveled with family, 51% survived.  Of those that did not travel with family, 30% survived.  Interestingly, males who traveled with family survived at a higher rate (and at a higher than the mean survival rate for males), than single males, across all passenger classes.  
+# 
+# Further study would be needed to test how some factors correlate with others.  For example, I noticed that the survival rates for males traveling with family were higher than single males, but was traveling with family statistically significant in terms of survival rates?  I would like to know more about statistics to figure that one out.
+# 
+
+# 
